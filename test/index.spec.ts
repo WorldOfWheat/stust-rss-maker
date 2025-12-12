@@ -6,19 +6,62 @@ import worker from '../src/index';
 // `Request` to pass to `worker.fetch()`.
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
-describe('Hello World worker', () => {
-	it('responds with Hello World! (unit style)', async () => {
-		const request = new IncomingRequest('http://example.com');
-		// Create an empty context to pass to `worker.fetch()`.
+describe('worker', () => {
+	it('handles non-GET requests with 405', async () => {
+		const request = new IncomingRequest('http://example.com', {
+			method: 'POST',
+		});
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, env, ctx);
-		// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
 		await waitOnExecutionContext(ctx);
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+		expect(response.status).toBe(405);
 	});
 
-	it('responds with Hello World! (integration style)', async () => {
-		const response = await SELF.fetch('https://example.com');
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+	it('handles fetch failure with 500', async () => {
+		// Temporarily override fetch to simulate a failure
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => new Response(null, { status: 500 });
+
+		const request = new IncomingRequest('http://example.com');
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.status).toBe(500);
+
+		// Restore original fetch
+		globalThis.fetch = originalFetch;
+	});
+
+	it('handles GET requests successfully', async () => {
+		const mockResponse = `
+		<table class="striped bordered">
+			<tr>
+				<td>
+					<a title="A1" href="link1">link1</a>
+				</td>
+				<td>2024/06/01</td>
+			</tr>
+			<tr>
+				<td>
+					<a title="A2" href="link2">link2</a>
+				</td>
+				<td>2024/06/02</td>
+			</tr>
+		</table>
+		`;
+
+		const originalFetch = globalThis.fetch;
+		// globalThis.fetch = async () => new Response(mockResponse, { status: 200 });
+
+		const request = new IncomingRequest('http://example.com');
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.status).toBe(200);
+		const data = await response.text();
+		expect(data).toContain('<item>');
+		console.debug(data);
+
+		globalThis.fetch = originalFetch;
 	});
 });
