@@ -1,21 +1,11 @@
 import dayjs, { Dayjs } from 'dayjs';
 import { handlePageContent } from './pageHandler';
 import { Feed } from 'feed';
+import { LinkData } from './types/linkData';
+import { ContentData } from './types/contentData';
 
 function escapeHTML(str: string): string {
 	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-class LinkData {
-	title: string;
-	content: string;
-	link: string;
-
-	constructor(title: string, content: string, link: string) {
-		this.title = title;
-		this.content = escapeHTML(content).replace(/\n/g, '<br/>');
-		this.link = link;
-	}
 }
 
 class DateExtractor {

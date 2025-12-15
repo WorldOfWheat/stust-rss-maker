@@ -1,3 +1,5 @@
+import { ContentData } from './types/contentData';
+
 class ContentExtractor {
 	content: string;
 	constructor() {
