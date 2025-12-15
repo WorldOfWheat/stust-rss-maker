@@ -15,7 +15,7 @@ class ContentExtractor {
 	}
 }
 
-export async function handlePageContent(link: string): Promise<string> {
+export async function handlePageContent(link: string, index: number): Promise<ContentData> {
 	const response = await fetch(link);
 	const contentSpanId = 'ctl00_ContentPlaceHolder1_lbl_content';
 
@@ -25,5 +25,5 @@ export async function handlePageContent(link: string): Promise<string> {
 	const rewriter = new HTMLRewriter().on(selector, extractor);
 	await rewriter.transform(new Response(data)).arrayBuffer();
 
-	return extractor.content;
+	return new ContentData(extractor.content, index);
 }

@@ -37,8 +37,7 @@ class LinkExtractor {
 
 		if (title && href) {
 			const newHref = href.replace('../', 'https://news.stust.edu.tw/');
-			const content = await handlePageContent(newHref);
-			this.linkDataList.push(new LinkData(title, content, href));
+			this.linkDataList.push(new LinkData(title, newHref));
 		}
 	}
 }
@@ -85,6 +84,15 @@ export default {
 		const linkDataList = await makeLinkDataList(data);
 		const linkDataLength = linkDataList.length;
 		const dateList = await makeDateList(data, linkDataLength);
+		const contentDataPromises: Promise<ContentData>[] = [];
+
+		for (let i = 0; i < linkDataLength; i++) {
+			const linkData = linkDataList[i];
+			contentDataPromises.push(handlePageContent(linkData.link, i));
+		}
+
+		const contentDataList = await Promise.all(contentDataPromises);
+		contentDataList.sort((a, b) => a.index - b.index);
 
 		const feed = new Feed({
 			title: 'STUST 布告欄 RSS',
@@ -110,7 +118,7 @@ export default {
 				title: linkData.title,
 				id: linkData.title,
 				link: linkData.link,
-				content: linkData.content,
+				content: contentDataList[i].content,
 				date: pubDate,
 			});
 		}

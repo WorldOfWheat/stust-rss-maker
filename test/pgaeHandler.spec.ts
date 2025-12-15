@@ -11,8 +11,9 @@ describe('handlePage', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = async () => new Response(mockResponse, { status: 200 });
 
-		const content = await handlePageContent('http://example.com');
-		expect(content).toContain('This is the extracted content.');
+		const content = await handlePageContent('http://example.com', 1);
+		expect(content.content).toContain('This is the extracted content.');
+		expect(content.index).toBe(1);
 
 		globalThis.fetch = originalFetch;
 	});
@@ -26,8 +27,9 @@ describe('handlePage', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = async () => new Response(mockResponse, { status: 200 });
 
-		const content = await handlePageContent('http://example.com');
-		expect(content).toContain('Line 1\nLine 2\nLine 3');
+		const content = await handlePageContent('http://example.com', 1);
+		expect(content.content).toContain('Line 1\nLine 2\nLine 3');
+		expect(content.index).toBe(1);
 
 		globalThis.fetch = originalFetch;
 	});
