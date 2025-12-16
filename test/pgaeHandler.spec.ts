@@ -28,7 +28,7 @@ describe('handlePage', () => {
 		globalThis.fetch = async () => new Response(mockResponse, { status: 200 });
 
 		const content = await handlePageContent('http://example.com', 1);
-		expect(content.content).toContain('Line 1\nLine 2\nLine 3');
+		expect(content.content).toContain('Line 1<br />Line 2<br />Line 3');
 		expect(content.index).toBe(1);
 
 		globalThis.fetch = originalFetch;
