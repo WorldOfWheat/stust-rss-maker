@@ -4,10 +4,6 @@ import { Feed } from 'feed';
 import { LinkData } from './types/linkData';
 import { ContentData } from './types/contentData';
 
-function escapeHTML(str: string): string {
-	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 class DateExtractor {
 	dateTextList: Dayjs[];
 	constructor() {
