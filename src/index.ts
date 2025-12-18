@@ -1,22 +1,8 @@
 import dayjs, { Dayjs } from 'dayjs';
 import { handlePageContent } from './pageHandler';
 import { Feed } from 'feed';
-
-function escapeHTML(str: string): string {
-	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-class LinkData {
-	title: string;
-	content: string;
-	link: string;
-
-	constructor(title: string, content: string, link: string) {
-		this.title = title;
-		this.content = escapeHTML(content).replace(/\n/g, '<br/>');
-		this.link = link;
-	}
-}
+import { LinkData } from './types/linkData';
+import { ContentData } from './types/contentData';
 
 class DateExtractor {
 	dateTextList: Dayjs[];
@@ -47,8 +33,7 @@ class LinkExtractor {
 
 		if (title && href) {
 			const newHref = href.replace('../', 'https://news.stust.edu.tw/');
-			const content = await handlePageContent(newHref);
-			this.linkDataList.push(new LinkData(title, content, href));
+			this.linkDataList.push(new LinkData(title, newHref));
 		}
 	}
 }
@@ -77,7 +62,7 @@ async function makeDateList(data: string, length: number): Promise<Dayjs[]> {
 }
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
+	async fetch(request, env: Env, ctx): Promise<Response> {
 		const method = request.method;
 		if (method !== 'GET') {
 			return new Response('Method Not Allowed', { status: 405 });
@@ -95,6 +80,21 @@ export default {
 		const linkDataList = await makeLinkDataList(data);
 		const linkDataLength = linkDataList.length;
 		const dateList = await makeDateList(data, linkDataLength);
+		const contentModeToken = request.headers.get('content-mode-token') || null;
+		let contentDataList: ContentData[] = [];
+
+		if (contentModeToken === env.content_mode_secret) {
+			const contentDataPromises: Promise<ContentData>[] = [];
+			for (let i = 0; i < linkDataLength; i++) {
+				const linkData = linkDataList[i];
+				contentDataPromises.push(handlePageContent(linkData.link, i));
+			}
+
+			contentDataList = await Promise.all(contentDataPromises);
+			contentDataList.sort((a, b) => a.index - b.index);
+		} else {
+			contentDataList = linkDataList.map(() => new ContentData('', -1));
+		}
 
 		const feed = new Feed({
 			title: 'STUST 布告欄 RSS',
@@ -120,7 +120,7 @@ export default {
 				title: linkData.title,
 				id: linkData.title,
 				link: linkData.link,
-				content: linkData.content,
+				content: contentDataList[i].content,
 				date: pubDate,
 			});
 		}
