@@ -62,7 +62,7 @@ async function makeDateList(data: string, length: number): Promise<Dayjs[]> {
 }
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
+	async fetch(request, env: Env, ctx): Promise<Response> {
 		const method = request.method;
 		if (method !== 'GET') {
 			return new Response('Method Not Allowed', { status: 405 });
@@ -80,15 +80,21 @@ export default {
 		const linkDataList = await makeLinkDataList(data);
 		const linkDataLength = linkDataList.length;
 		const dateList = await makeDateList(data, linkDataLength);
-		const contentDataPromises: Promise<ContentData>[] = [];
+		const contentModeToken = request.headers.get('content-mode-token') || null;
+		let contentDataList: ContentData[] = [];
 
-		for (let i = 0; i < linkDataLength; i++) {
-			const linkData = linkDataList[i];
-			contentDataPromises.push(handlePageContent(linkData.link, i));
+		if (contentModeToken === env.content_mode_secret) {
+			const contentDataPromises: Promise<ContentData>[] = [];
+			for (let i = 0; i < linkDataLength; i++) {
+				const linkData = linkDataList[i];
+				contentDataPromises.push(handlePageContent(linkData.link, i));
+			}
+
+			contentDataList = await Promise.all(contentDataPromises);
+			contentDataList.sort((a, b) => a.index - b.index);
+		} else {
+			contentDataList = linkDataList.map(() => new ContentData('', -1));
 		}
-
-		const contentDataList = await Promise.all(contentDataPromises);
-		contentDataList.sort((a, b) => a.index - b.index);
 
 		const feed = new Feed({
 			title: 'STUST 布告欄 RSS',
